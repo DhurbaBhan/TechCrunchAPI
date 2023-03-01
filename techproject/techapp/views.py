@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import JsonResponse
 import json
+from rest_framework import status
 # Create your views here.
 @api_view(['GET','POST'])
 def tech(request):    
@@ -14,22 +15,34 @@ def tech(request):
         # return JsonResponse(json.dumps(result_list),safe=False)
         serial=PostSerializer(prod,many=True)
         return JsonResponse(serial.data,safe=False)
-
-@api_view(['POST'])     
-def tech_post(request):
+@api_view(['GET','POST'])
+def client(request):
+    if request.method == 'GET':
+        prod=Client.objects.all()
+        serial=ClientSerializer(prod,many=True)
+        return JsonResponse(serial.data,safe=False)
     if request.method == 'POST':
-        try:
-            author=Author.objects.get(email=request.session['author_session_email'])
-            if author.is_staff and request.session.has_key('author_session_email'):
-                data = request.data
-                serializer = PostSerializer(data=data)
-                if serializer.is_valid():
-                    serializer.save()   
-                    return JsonResponse({'msg':'Posted'})
-            else:
-                return Response("Either you are not approved by admin or you are not loggedin.")    
-        except:        
-            return Response("Either you are not approved by admin or you are not loggedin.")           
+        data=request.data
+        serial=ClientSerializer(data=data)
+        if serial.is_valid():
+            serial.save()
+            return Response("New Client Created!!!")
+        
+@api_view(['GET','POST'])
+def author(request):
+    if request.method == 'GET':
+        prod=Author.objects.all()
+        serial=AuthorSerializer(prod,many=True)
+        return JsonResponse(serial.data,safe=False)
+    if request.method == 'POST':
+        data=request.data
+        serial=AuthorSerializer(data=data)
+        if serial.is_valid():
+            serial.save()
+            return Response("New Author Created!!!")        
+
+
+           
 @api_view(['POST'])       
 def client_login(request):
     if request.method=='POST':
@@ -86,7 +99,63 @@ def comment(request):
                 serializer.save()   
                 return Response('Comment Posted')
         else:
-            return Response("Client, Login First to comment!!!")     
+            return Response("Client, Login First to comment!!!") 
+
+@api_view(['POST'])     
+def tech_post(request):
+    if request.method == 'POST':
+        try:
+            author=Author.objects.get(email=request.session['author_session_email'])
+            if author.is_staff and request.session.has_key('author_session_email'):
+                data = request.data
+                serializer = PostSerializer(data=data)
+                if serializer.is_valid():
+                    serializer.save()   
+                    return JsonResponse({'msg':'Posted'})
+            else:
+                return Response("Either you are not approved by admin or you are not loggedin.")    
+        except:        
+            return Response("Either you are not approved by admin or you are not loggedin.")          
+
+@api_view(['POST'])
+def client_change_password(request):
+    if request.method=="POST":
+        user_email = request.data.get("email")
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        
+        try:
+            user = Client.objects.get(email=user_email)
+        except Client.DoesNotExist:
+            return Response({"email": ["User not found."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.password == old_password:
+            return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.password = new_password
+        user.save()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['POST'])
+def author_change_password(request):
+    if request.method=="POST":
+        user_email = request.data.get("email")
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+        
+        try:
+            author = Author.objects.get(email=user_email)
+        except Author.DoesNotExist:
+            return Response({"email": ["User not found."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not author.password == old_password:
+            return Response({"old_password": ["Wrong password."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        author.password = new_password
+        author.save()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)             
     
 
     
